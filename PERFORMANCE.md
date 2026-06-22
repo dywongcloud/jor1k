@@ -129,6 +129,26 @@ OpenRISC Linux to a BusyBox shell on the minified bundles via the
 cross-origin-isolated dev server (`self.crossOriginIsolated === true`), with the
 zero-copy framebuffer timer running without errors.
 
+## Deploying to a static host (Vercel)
+
+The kernel and root filesystem live in the `openrisc-sys` / `riscv-sys`
+submodules (~149 MB + ~35 MB), which the demos load lazily from
+`../openrisc-sys/...`. Bundling all of that into a static deploy is impractical
+(and exceeds typical limits), so `vercel.json` rewrites those asset paths to the
+jsDelivr CDN, pinned to the submodule commits:
+
+```
+/openrisc-sys/*  ->  cdn.jsdelivr.net/gh/s-macke/jor1k-sysroot@<commit>/*
+/riscv-sys/*     ->  cdn.jsdelivr.net/gh/s-macke/riscv-sysroot@<commit>/*
+```
+
+This keeps the deploy tiny (just the demos + bundles + wasm) and, because the
+rewrite is a same-origin proxy, the assets remain same-origin — so it also works
+if you later add COOP/COEP headers in `vercel.json` to enable `SharedArrayBuffer`.
+The relative `../openrisc-sys/...` URL resolves to `/openrisc-sys/...` whether
+the Vercel root is the repo or the `demos/` folder (browsers clamp `../` at the
+origin root), so no HTML changes are needed.
+
 ## Automated checks
 
 `npm test` runs `test/cpu-facade.js`, which executes a basic instruction through
