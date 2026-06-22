@@ -110,15 +110,24 @@ above rather than shipped half-working.
 These changes cannot be validated headlessly (no Linux boot in CI), so verify in
 a browser:
 
-1. `npm install && npm run build`
-2. `npm run serve` and open `http://localhost:8000/demos/main.html`
-3. Confirm Linux boots and the terminal is responsive (zero-copy framebuffer,
+1. `git submodule update --init --recursive` (fetches the kernel + root
+   filesystem from the `openrisc-sys` / `riscv-sys` submodules; without this the
+   demos request `../openrisc-sys/...`, get the server's 404 HTML page, and fail
+   with `Unexpected token '<' ... is not valid JSON`).
+2. `npm install && npm run build`
+3. `npm run serve` and open `http://localhost:8000/demos/main.html`
+4. Confirm Linux boots and the terminal is responsive (zero-copy framebuffer,
    minified bundles).
-4. Try `http://localhost:8000/demos/main.html?cpu=wasm` for the WebAssembly core.
-5. With the cross-origin-isolated dev server, `self.crossOriginIsolated` is
+5. Try `http://localhost:8000/demos/main.html?cpu=wasm` for the WebAssembly core.
+6. With the cross-origin-isolated dev server, `self.crossOriginIsolated` is
    `true` in devtools and a `shared: true` system config yields a
    `SharedArrayBuffer` heap (look for "Use shared arraybuffer memory" in the
    debug log).
+
+This has been verified end to end: both `simple.html` and `main.html` boot
+OpenRISC Linux to a BusyBox shell on the minified bundles via the
+cross-origin-isolated dev server (`self.crossOriginIsolated === true`), with the
+zero-copy framebuffer timer running without errors.
 
 ## Automated checks
 
