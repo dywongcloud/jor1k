@@ -134,19 +134,21 @@ zero-copy framebuffer timer running without errors.
 The kernel and root filesystem live in the `openrisc-sys` / `riscv-sys`
 submodules (~149 MB + ~35 MB), which the demos load lazily from
 `../openrisc-sys/...`. Bundling all of that into a static deploy is impractical
-(and exceeds typical limits), so `vercel.json` rewrites those asset paths to the
-jsDelivr CDN, pinned to the submodule commits:
+(and exceeds typical limits), so `vercel.json` rewrites those asset paths to
+`raw.githubusercontent.com`, pinned to the submodule commits:
 
 ```
 /openrisc-sys/*  ->  raw.githubusercontent.com/s-macke/jor1k-sysroot/<commit>/*
 /riscv-sys/*     ->  raw.githubusercontent.com/s-macke/riscv-sysroot/<commit>/*
 ```
 
-jsDelivr is NOT used because the jor1k-sysroot repo (~149 MB) exceeds its
-package-size limit (it returns a tiny error stub, which boots as a corrupt
-kernel). raw.githubusercontent.com has no such limit. This keeps the deploy tiny (just the demos + bundles + wasm) and, because the
-rewrite is a same-origin proxy, the assets remain same-origin — so it also works
-if you later add COOP/COEP headers in `vercel.json` to enable `SharedArrayBuffer`.
+A CDN such as jsDelivr is **not** used: the `jor1k-sysroot` repo (~149 MB)
+exceeds jsDelivr's package-size limit, so it returns a ~77-byte error stub for
+every file — which the emulator loads as a corrupt "kernel" and then hangs at
+`Booting`. `raw.githubusercontent.com` has no repo-size limit and returns the
+real files. This keeps the deploy tiny (just the demos + bundles + wasm) and,
+because the rewrite is a same-origin proxy, the assets remain same-origin — so it
+also works if you later add COOP/COEP headers to enable `SharedArrayBuffer`.
 The relative `../openrisc-sys/...` URL resolves to `/openrisc-sys/...` whether
 the Vercel root is the repo or the `demos/` folder (browsers clamp `../` at the
 origin root), so no HTML changes are needed.
