@@ -129,29 +129,41 @@ OpenRISC Linux to a BusyBox shell on the minified bundles via the
 cross-origin-isolated dev server (`self.crossOriginIsolated === true`), with the
 zero-copy framebuffer timer running without errors.
 
-## Deploying to a static host (Vercel)
+## Deploying to a static host (any platform)
 
 The kernel and root filesystem live in the `openrisc-sys` / `riscv-sys`
-submodules (~149 MB + ~35 MB), which the demos load lazily from
-`../openrisc-sys/...`. Bundling all of that into a static deploy is impractical
-(and exceeds typical limits), so `vercel.json` rewrites those asset paths to
-`raw.githubusercontent.com`, pinned to the submodule commits:
+submodules (~149 MB + ~35 MB). The demos do **not** require those files to be
+deployed alongside them — instead each demo's `path` points directly at
+`raw.githubusercontent.com`, pinned to the submodule commit:
 
 ```
-/openrisc-sys/*  ->  raw.githubusercontent.com/s-macke/jor1k-sysroot/<commit>/*
-/riscv-sys/*     ->  raw.githubusercontent.com/s-macke/riscv-sysroot/<commit>/*
+demos/*.html  path: "https://raw.githubusercontent.com/s-macke/jor1k-sysroot/<commit>/"
+demos/riscv.html  path: "https://raw.githubusercontent.com/s-macke/riscv-sysroot/<commit>/"
 ```
 
-A CDN such as jsDelivr is **not** used: the `jor1k-sysroot` repo (~149 MB)
-exceeds jsDelivr's package-size limit, so it returns a ~77-byte error stub for
-every file — which the emulator loads as a corrupt "kernel" and then hangs at
-`Booting`. `raw.githubusercontent.com` has no repo-size limit and returns the
-real files. This keeps the deploy tiny (just the demos + bundles + wasm) and,
-because the rewrite is a same-origin proxy, the assets remain same-origin — so it
-also works if you later add COOP/COEP headers to enable `SharedArrayBuffer`.
-The relative `../openrisc-sys/...` URL resolves to `/openrisc-sys/...` whether
-the Vercel root is the repo or the `demos/` folder (browsers clamp `../` at the
-origin root), so no HTML changes are needed.
+`raw.githubusercontent.com` serves every file in the repo (no size limit) and —
+critically — sends `access-control-allow-origin: *` **and**
+`cross-origin-resource-policy: cross-origin`, so the worker's cross-origin
+`XMLHttpRequest`s for the kernel, `basefs.json`, `fs.json` and every on-demand
+file succeed from any origin (even under cross-origin isolation). Because the
+URLs are absolute, this needs **no** server-side rewrite, **no** `_redirects` /
+`vercel.json` / Pages Function, and the submodules don't have to be checked out
+on the host. It works identically on Vercel, Cloudflare Pages, Netlify, GitHub
+Pages, `wrangler pages dev`, `python -m http.server`, etc.
+
+Notes:
+
+* A CDN such as jsDelivr is **not** used: the `jor1k-sysroot` repo (~149 MB)
+  exceeds jsDelivr's package-size limit, so it returns a tiny error stub for
+  every file — which the emulator loads as a corrupt "kernel" and hangs at
+  `Booting` (the tell is `Kernel loaded: 77 bytes` in the console).
+* The extended filesystem's `src` is `"fs/"`, which the loader concatenates to
+  `fs//…`; raw GitHub answers that with a `307` to `fs/…` (CORS headers
+  included, so XHR follows it). Boot-critical `basefs/…` files use a single
+  slash and load directly.
+* For **local development with the submodules checked out**, set `path` back to
+  `"../openrisc-sys/"` (and `"../riscv-sys/"`) and serve the repo with
+  `npm run serve`.
 
 ## Automated checks
 
