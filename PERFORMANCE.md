@@ -138,11 +138,13 @@ submodules (~149 MB + ~35 MB), which the demos load lazily from
 jsDelivr CDN, pinned to the submodule commits:
 
 ```
-/openrisc-sys/*  ->  cdn.jsdelivr.net/gh/s-macke/jor1k-sysroot@<commit>/*
-/riscv-sys/*     ->  cdn.jsdelivr.net/gh/s-macke/riscv-sysroot@<commit>/*
+/openrisc-sys/*  ->  raw.githubusercontent.com/s-macke/jor1k-sysroot/<commit>/*
+/riscv-sys/*     ->  raw.githubusercontent.com/s-macke/riscv-sysroot/<commit>/*
 ```
 
-This keeps the deploy tiny (just the demos + bundles + wasm) and, because the
+jsDelivr is NOT used because the jor1k-sysroot repo (~149 MB) exceeds its
+package-size limit (it returns a tiny error stub, which boots as a corrupt
+kernel). raw.githubusercontent.com has no such limit. This keeps the deploy tiny (just the demos + bundles + wasm) and, because the
 rewrite is a same-origin proxy, the assets remain same-origin — so it also works
 if you later add COOP/COEP headers in `vercel.json` to enable `SharedArrayBuffer`.
 The relative `../openrisc-sys/...` URL resolves to `/openrisc-sys/...` whether
